@@ -1,0 +1,17 @@
+services:
+  arb-sim:
+    build: .
+    container_name: arb-agent-sim
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/sim/info"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
