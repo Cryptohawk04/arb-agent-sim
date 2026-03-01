@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arbitrage AI Agent — Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- PAPER MODE BANNER -->
+  <div class="paper-banner" id="paperBanner">
+    <span class="paper-banner__icon">⚠</span>
+    <span class="paper-banner__text">SIM + PAPER MODE</span>
+    <span class="paper-banner__sub">— Simulated trading · No real capital at risk</span>
+  </div>
+
+  <!-- HEADER BAR -->
+  <header class="header">
+    <div class="header__left">
+      <div class="header__logo">
+        <span class="header__logo-icon">◆</span>
+        <h1 class="header__title">Arbitrage AI Agent</h1>
+        <span class="header__divider">—</span>
+        <span class="header__subtitle">Control Center</span>
+      </div>
+    </div>
+    <div class="header__right">
+      <div class="header__mode" id="modeIndicator">
+        <span class="header__mode-dot"></span>
+        <span class="header__mode-label">SIM</span>
+      </div>
+      <div class="sim-controls">
+        <button class="sim-btn sim-btn--pause" id="btnPause" title="Pause">⏸</button>
+        <button class="sim-btn sim-btn--play" id="btnResume" title="Resume">▶</button>
+        <button class="sim-btn sim-btn--reset" id="btnReset" title="Reset">↺</button>
+        <select class="sim-select" id="tickRateSelect">
+          <option value="1000">1s</option>
+          <option value="2000">2s</option>
+          <option value="3000" selected>3s</option>
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+        </select>
+        <span class="sim-tick-count" id="tickCount">T:0</span>
+        <span class="sim-sse-dot" id="sseDot" title="SSE disconnected">●</span>
+      </div>
+      <div class="header__time" id="headerTime">00:00:00</div>
+      <div class="header__date" id="headerDate">—</div>
+    </div>
+  </header>
+
+  <!-- TAB NAVIGATION -->
+  <nav class="tab-nav" id="tabNav">
+    <a class="tab-link tab-link--active" href="#overview" data-tab="overview">Overview</a>
+    <a class="tab-link" href="#monitor" data-tab="monitor">Monitor</a>
+    <a class="tab-link" href="#edge" data-tab="edge">Edge</a>
+    <a class="tab-link" href="#exec" data-tab="exec">Exec</a>
+    <a class="tab-link" href="#risk" data-tab="risk">Risk</a>
+    <a class="tab-link" href="#signals" data-tab="signals">Signals</a>
+    <a class="tab-link" href="#watchdog" data-tab="watchdog">Watchdog</a>
+    <a class="tab-link" href="#strategy" data-tab="strategy">Strategy</a>
+  </nav>
+
+  <!-- TAB: OVERVIEW (existing dashboard) -->
+  <main class="dashboard tab-content" id="tab-overview">
+
+    <!-- ROW 1 -->
+    <section class="card bankroll-card">
+      <div class="card__header">
+        <span class="card__label">BANKROLL</span>
+        <span class="card__badge card__badge--cyan">LIVE BALANCE</span>
+      </div>
+      <div class="bankroll-grid">
+        <div class="bankroll-stat bankroll-stat--primary">
+          <span class="bankroll-stat__label">Current Balance</span>
+          <span class="bankroll-stat__value bankroll-stat__value--green" id="currentBalance">$250.00</span>
+        </div>
+        <div class="bankroll-stat">
+          <span class="bankroll-stat__label">Starting</span>
+          <span class="bankroll-stat__value bankroll-stat__value--dim" id="startingBalance">$250.00</span>
+        </div>
+        <div class="bankroll-stat">
+          <span class="bankroll-stat__label">Exposure</span>
+          <span class="bankroll-stat__value" id="exposure">$0.00</span>
+        </div>
+        <div class="bankroll-stat">
+          <span class="bankroll-stat__label">Daily PnL</span>
+          <span class="bankroll-stat__value" id="dailyPnl">$0.00</span>
+        </div>
+        <div class="bankroll-stat">
+          <span class="bankroll-stat__label">Weekly PnL</span>
+          <span class="bankroll-stat__value" id="weeklyPnl">$0.00</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card pnl-chart-card">
+      <div class="card__header">
+        <span class="card__label">PnL CURVE</span>
+        <span class="card__badge card__badge--green">7D</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="pnlChart"></canvas>
+      </div>
+    </section>
+
+    <section class="card risk-card">
+      <div class="card__header">
+        <span class="card__label">RISK DASHBOARD</span>
+        <span class="card__badge card__badge--amber">LIMITS</span>
+      </div>
+      <div class="risk-gauges">
+        <div class="gauge">
+          <div class="gauge__header">
+            <span class="gauge__label">Daily Loss</span>
+            <span class="gauge__value" id="gaugeDailyLossVal">-$0.00 / -$10.00</span>
+          </div>
+          <div class="gauge__track">
+            <div class="gauge__fill gauge__fill--green" id="gaugeDailyLossFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="gauge">
+          <div class="gauge__header">
+            <span class="gauge__label">Weekly Loss</span>
+            <span class="gauge__value" id="gaugeWeeklyLossVal">-$0.00 / -$30.00</span>
+          </div>
+          <div class="gauge__track">
+            <div class="gauge__fill gauge__fill--green" id="gaugeWeeklyLossFill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="gauge">
+          <div class="gauge__header">
+            <span class="gauge__label">Exposure</span>
+            <span class="gauge__value" id="gaugeExposureVal">$0.00 / $150.00</span>
+          </div>
+          <div class="gauge__track">
+            <div class="gauge__fill gauge__fill--green" id="gaugeExposureFill" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROW 2 -->
+    <section class="card edges-card">
+      <div class="card__header">
+        <span class="card__label">TOP EDGES</span>
+        <span class="card__badge card__badge--green">OPPORTUNITIES</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="edgesTable">
+          <thead><tr><th>Ticker</th><th>Edge %</th><th>Exp. Profit</th><th>Side</th><th>Status</th></tr></thead>
+          <tbody id="edgesBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card positions-card">
+      <div class="card__header">
+        <span class="card__label">OPEN POSITIONS</span>
+        <span class="card__badge card__badge--cyan">FILLS</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="positionsTable">
+          <thead><tr><th>Ticker</th><th>Side</th><th>Size</th><th>Entry</th><th>Current</th><th>PnL</th></tr></thead>
+          <tbody id="positionsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ROW 3 -->
+    <section class="card signals-card">
+      <div class="card__header">
+        <span class="card__label">RECENT SIGNALS</span>
+        <span class="card__badge card__badge--cyan">LAST 10</span>
+      </div>
+      <div class="signals-list" id="signalsList"></div>
+    </section>
+
+    <section class="card agents-card">
+      <div class="card__header">
+        <span class="card__label">AGENT HEALTH</span>
+        <span class="card__badge card__badge--green">ALL SYSTEMS</span>
+      </div>
+      <div class="agents-grid" id="agentsGrid"></div>
+    </section>
+
+    <section class="card errors-card">
+      <div class="card__header">
+        <span class="card__label">ERROR LOG</span>
+        <span class="card__badge card__badge--red">CONSOLE</span>
+      </div>
+      <div class="error-console" id="errorConsole"></div>
+    </section>
+  </main>
+
+  <!-- TAB: MONITOR -->
+  <div class="tab-content tab-content--hidden" id="tab-monitor">
+    <div class="agent-detail-page">
+      <div class="card agent-detail-card">
+        <div class="card__header">
+          <span class="card__label">MONITOR AGENT</span>
+          <span class="card__badge card__badge--green" id="monitorStatus">ACTIVE</span>
+        </div>
+        <div class="agent-detail-grid">
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Status</span>
+            <span class="agent-detail-stat__value" id="monitorStatusVal">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Latency</span>
+            <span class="agent-detail-stat__value" id="monitorLatency">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Last Seen</span>
+            <span class="agent-detail-stat__value" id="monitorLastSeen">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Anomalies Found</span>
+            <span class="agent-detail-stat__value" id="monitorAnomalies">—</span>
+          </div>
+        </div>
+        <div class="agent-detail-desc">
+          <p>Polls simulated market data every tick. Detects mispricings and anomalies where YES+NO deviates from 1.00. Writes to watchlist and memory log.</p>
+        </div>
+      </div>
+      <div class="card agent-event-log-card">
+        <div class="card__header">
+          <span class="card__label">MONITOR EVENT LOG</span>
+          <span class="card__badge card__badge--cyan">STREAM</span>
+        </div>
+        <div class="error-console" id="monitorEventLog">
+          <div class="error-line"><span class="error-line__time">—</span><span class="error-line__level error-line__level--info">INFO</span><span class="error-line__msg">Waiting for events...</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: EDGE -->
+  <div class="tab-content tab-content--hidden" id="tab-edge">
+    <div class="agent-detail-page">
+      <div class="card agent-detail-card">
+        <div class="card__header">
+          <span class="card__label">EDGE CALCULATOR</span>
+          <span class="card__badge card__badge--green" id="edgeStatus">ACTIVE</span>
+        </div>
+        <div class="agent-detail-grid">
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Status</span>
+            <span class="agent-detail-stat__value" id="edgeStatusVal">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Latency</span>
+            <span class="agent-detail-stat__value" id="edgeLatency">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Above Threshold</span>
+            <span class="agent-detail-stat__value" id="edgeAboveThreshold">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Top Edge</span>
+            <span class="agent-detail-stat__value" id="edgeTopEdge">—</span>
+          </div>
+        </div>
+        <div class="agent-detail-desc">
+          <p>Computes net edge after fees and slippage. Ranks opportunities by expected profit (edge × size × fill probability). Minimum edge threshold: 3%.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card__header">
+          <span class="card__label">EDGE RANKINGS</span>
+          <span class="card__badge card__badge--green">RANKED</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Ticker</th><th>Edge %</th><th>Exp. Profit</th><th>Side</th><th>Status</th></tr></thead>
+            <tbody id="edgeRankingsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: EXEC -->
+  <div class="tab-content tab-content--hidden" id="tab-exec">
+    <div class="agent-detail-page">
+      <div class="card agent-detail-card">
+        <div class="card__header">
+          <span class="card__label">ORDER EXECUTOR</span>
+          <span class="card__badge card__badge--green" id="execStatus">ACTIVE</span>
+        </div>
+        <div class="agent-detail-grid">
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Mode</span>
+            <span class="agent-detail-stat__value bankroll-stat__value--amber">PAPER ONLY</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Total Orders</span>
+            <span class="agent-detail-stat__value" id="execTotalOrders">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Total Fills</span>
+            <span class="agent-detail-stat__value" id="execTotalFills">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Open Positions</span>
+            <span class="agent-detail-stat__value" id="execOpenPositions">0</span>
+          </div>
+        </div>
+        <div class="agent-detail-desc">
+          <p>Executes paper orders only. LIVE execution is disabled. All trades go through ComplianceGate (venue allowlist + eligibility + human approval) and RiskEngine (position sizing, loss limits).</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card__header">
+          <span class="card__label">OPEN POSITIONS</span>
+          <span class="card__badge card__badge--cyan">FILLS</span>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Ticker</th><th>Side</th><th>Size</th><th>Entry</th><th>Current</th><th>PnL</th></tr></thead>
+            <tbody id="execPositionsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: RISK -->
+  <div class="tab-content tab-content--hidden" id="tab-risk">
+    <div class="agent-detail-page">
+      <div class="card agent-detail-card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__label">RISK MONITOR</span>
+          <span class="card__badge card__badge--amber" id="riskStatusBadge">LIMITS</span>
+        </div>
+        <div class="agent-detail-grid" style="grid-template-columns: repeat(6, 1fr);">
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Daily Loss</span>
+            <span class="agent-detail-stat__value" id="riskDailyLossDetail">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Daily Limit</span>
+            <span class="agent-detail-stat__value bankroll-stat__value--dim">-$10.00</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Weekly Loss</span>
+            <span class="agent-detail-stat__value" id="riskWeeklyLossDetail">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Weekly Limit</span>
+            <span class="agent-detail-stat__value bankroll-stat__value--dim">-$30.00</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Exposure</span>
+            <span class="agent-detail-stat__value" id="riskExposureDetail">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Circuit Breaker</span>
+            <span class="agent-detail-stat__value" id="riskCircuitBreaker">OFF</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__label">RISK GAUGES</span>
+          <span class="card__badge card__badge--amber">LIVE</span>
+        </div>
+        <div class="risk-gauges" id="riskGaugesDetail">
+          <div class="gauge">
+            <div class="gauge__header">
+              <span class="gauge__label">Daily Loss</span>
+              <span class="gauge__value" id="riskGaugeDailyVal">—</span>
+            </div>
+            <div class="gauge__track">
+              <div class="gauge__fill gauge__fill--green" id="riskGaugeDailyFill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="gauge">
+            <div class="gauge__header">
+              <span class="gauge__label">Weekly Loss</span>
+              <span class="gauge__value" id="riskGaugeWeeklyVal">—</span>
+            </div>
+            <div class="gauge__track">
+              <div class="gauge__fill gauge__fill--green" id="riskGaugeWeeklyFill" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="gauge">
+            <div class="gauge__header">
+              <span class="gauge__label">Exposure</span>
+              <span class="gauge__value" id="riskGaugeExposureVal">—</span>
+            </div>
+            <div class="gauge__track">
+              <div class="gauge__fill gauge__fill--green" id="riskGaugeExposureFill" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: SIGNALS -->
+  <div class="tab-content tab-content--hidden" id="tab-signals">
+    <div class="agent-detail-page">
+      <div class="card agent-detail-card">
+        <div class="card__header">
+          <span class="card__label">SIGNAL SCANNER</span>
+          <span class="card__badge card__badge--green" id="signalsStatusBadge">ACTIVE</span>
+        </div>
+        <div class="agent-detail-grid">
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Total Signals</span>
+            <span class="agent-detail-stat__value" id="signalsTotalCount">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Buys</span>
+            <span class="agent-detail-stat__value bankroll-stat__value--green" id="signalsBuyCount">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Sells</span>
+            <span class="agent-detail-stat__value bankroll-stat__value--red" id="signalsSellCount">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Bias</span>
+            <span class="agent-detail-stat__value" id="signalsBias">NEUTRAL</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__label">SIGNAL FEED</span>
+          <span class="card__badge card__badge--cyan">ALL</span>
+        </div>
+        <div class="signals-list" id="signalsFullList" style="max-height: 500px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: WATCHDOG -->
+  <div class="tab-content tab-content--hidden" id="tab-watchdog">
+    <div class="agent-detail-page">
+      <div class="card agent-detail-card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__label">WATCHDOG</span>
+          <span class="card__badge card__badge--green" id="watchdogStatusBadge">ACTIVE</span>
+        </div>
+        <div class="agent-detail-grid" style="grid-template-columns: repeat(4, 1fr);">
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Tick Count</span>
+            <span class="agent-detail-stat__value" id="watchdogTickCount">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Healthy Agents</span>
+            <span class="agent-detail-stat__value bankroll-stat__value--green" id="watchdogHealthy">6</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Unhealthy</span>
+            <span class="agent-detail-stat__value" id="watchdogUnhealthy">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Circuit Breaker</span>
+            <span class="agent-detail-stat__value" id="watchdogCircuit">OFF</span>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__label">AGENT STATUS MATRIX</span>
+          <span class="card__badge card__badge--green">ALL SYSTEMS</span>
+        </div>
+        <div class="agents-grid" id="watchdogAgentsGrid"></div>
+      </div>
+      <div class="card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__label">INJECT FAILURE</span>
+          <span class="card__badge card__badge--red">TEST</span>
+        </div>
+        <div class="inject-grid" id="injectGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: STRATEGY -->
+  <div class="tab-content tab-content--hidden" id="tab-strategy">
+    <div class="agent-detail-page">
+      <div class="card agent-detail-card" style="grid-column: 1 / -1;">
+        <div class="card__header">
+          <span class="card__label">STRATEGY: EDGE_V0</span>
+          <span class="card__badge card__badge--cyan">ACTIVE</span>
+        </div>
+        <div class="agent-detail-grid" style="grid-template-columns: repeat(6, 1fr);">
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Edge Threshold</span>
+            <span class="agent-detail-stat__value" id="stratThreshold">3.0%</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Default Size</span>
+            <span class="agent-detail-stat__value" id="stratDefaultSize">$12.50</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Total Orders</span>
+            <span class="agent-detail-stat__value" id="stratTotalOrders">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Total Fills</span>
+            <span class="agent-detail-stat__value" id="stratTotalFills">0</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">Win Rate</span>
+            <span class="agent-detail-stat__value" id="stratWinRate">—</span>
+          </div>
+          <div class="agent-detail-stat">
+            <span class="agent-detail-stat__label">W / L</span>
+            <span class="agent-detail-stat__value" id="stratWL">0 / 0</span>
+          </div>
+        </div>
+        <div class="agent-detail-desc">
+          <p>Edge V0 is a basic mean-reversion strategy. It creates an order plan when a detected edge exceeds the threshold (3%) and risk checks pass. Paper broker fills with 2% spread + 0.5% slippage. 85% fill rate.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <span class="footer__text">Arbitrage AI Agent v1.0.0-sim · Last sync: <span id="lastSync">—</span></span>
+    <span class="footer__text">SSE: <span id="sseStatus">disconnected</span> · Tick: <span id="footerTickRate">3s</span></span>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
