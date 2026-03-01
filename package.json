@@ -1,0 +1,13 @@
+{
+  "name": "arb-agent-sim",
+  "version": "1.0.0",
+  "description": "Arbitrage AI Agent — Simulation Control Center",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
